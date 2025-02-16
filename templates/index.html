@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document QA</title>
+</head>
+<body>
+    <h1>Upload Document (PDF/DOCX) and Ask Questions</h1>
+
+    <!-- Form for file upload -->
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" required><br><br>
+        <button type="submit">Upload File</button>
+    </form>
+
+    <div id="status"></div>
+
+    <!-- Form for asking questions -->
+    <h2>Ask a Question</h2>
+    <form id="questionForm">
+        <input type="text" id="question" name="question" required><br><br>
+        <button type="submit">Ask</button>
+    </form>
+
+    <div id="answer"></div>
+
+    <script>
+        // Handle file upload
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const formData = new FormData();
+            formData.append("file", document.querySelector('input[type="file"]').files[0]);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    document.getElementById('status').textContent = data.message;
+                } else {
+                    document.getElementById('status').textContent = data.error;
+                }
+            });
+        });
+
+        // Handle question submission
+        document.getElementById('questionForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const question = document.getElementById('question').value;
+
+            fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `question=${encodeURIComponent(question)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.answer) {
+                    document.getElementById('answer').textContent = 'Answer: ' + data.answer;
+                } else {
+                    document.getElementById('answer').textContent = data.error || 'No answer found.';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

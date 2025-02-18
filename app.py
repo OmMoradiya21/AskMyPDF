@@ -2,14 +2,10 @@ import os
 from flask import Flask, render_template, request, jsonify
 import pdfplumber
 import docx
-from transformers import pipeline
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'docx'}
-
-# Load the Question Answering model (you can use any Hugging Face QA model)
-qa_pipeline = pipeline("question-answering")
 
 # Function to check allowed file extensions
 def allowed_file(filename):
@@ -70,7 +66,6 @@ def ask_question():
         return jsonify({'error': 'No document content available. Please upload a file first.'})
 
     # Use the QA model to find the answer
-    result = qa_pipeline({'context': context, 'question': question})
 
     return jsonify({'answer': result['answer']})
 

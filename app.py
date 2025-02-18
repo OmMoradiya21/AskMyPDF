@@ -2,6 +2,8 @@ import os
 from flask import Flask, render_template, request, jsonify
 import pdfplumber
 import docx
+import requests
+import json
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -65,9 +67,30 @@ def ask_question():
     if not context:
         return jsonify({'error': 'No document content available. Please upload a file first.'})
 
-    # Use the QA model to find the answer
+    # Use the gemini model to find the answer
+    response = requests.post(
+    url="https://openrouter.ai/api/v1/chat/completions",
+    headers={
+        "Authorization": "Bearer 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",
+    },
+    data=json.dumps({
+        "model": "google/gemini-2.0-flash-lite-preview-02-05:free", # Optional
+        "messages": [
+        {"role": "system", "content": "You are an AI assistant. Answer based on the provided context."},
+                {"role": "user", "content": f"Context: {context}\n\nQuestion: {question}"}
+        ],
+        "top_p": 1,
+        "temperature": 0.7,
+        "frequency_penalty": 0,
+        "presence_penalty": 0,
+        "repetition_penalty": 1,
+        "top_k": 0,
+    })
+    )
+    result=response.json().get("choices")[0].get("message").get("content")
 
-    return jsonify({'answer': result['answer']})
+
+    return jsonify({'answer': result})
 
 if __name__ == '__main__':
     app.run(debug=True)

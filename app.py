@@ -71,12 +71,12 @@ def ask_question():
     response = requests.post(
     url="https://openrouter.ai/api/v1/chat/completions",
     headers={
-        "Authorization": "Bearer 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",
+        "Authorization": "Bearer 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",
     },
     data=json.dumps({
-        "model": "google/gemini-2.0-flash-lite-preview-02-05:free", # Optional
+        "model": "google/gemma-3-1b-it:free", # google gemma3 1B
         "messages": [
-        {"role": "system", "content": "You are an AI assistant. Answer based on the provided context."},
+        {"role": "system", "content": "Answer only the question directly. Do not include greetings, thanks, or polite filler. No introductory or closing phrases. Just give the answer as directly and clearly as possible."},
                 {"role": "user", "content": f"Context: {context}\n\nQuestion: {question}"}
         ],
         "top_p": 1,

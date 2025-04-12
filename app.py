@@ -1,40 +1,39 @@
 import os
-from flask import Flask, render_template, request, jsonify
+import uuid
+import json
 import pdfplumber
 import docx
 import requests
-import json
+from flask import Flask, render_template, request, jsonify
 
-app = Flask(__name__)
+# === Flask App Config ===
+app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'docx'}
 
-# Function to check allowed file extensions
+# Ensure upload folder exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Load API key securely
+# OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY ="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"
+# === Helper Functions ===
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-# Function to extract text from a PDF
 def extract_text_from_pdf(pdf_file):
     with pdfplumber.open(pdf_file) as pdf:
-        text = ""
-        for page in pdf.pages:
-            text += page.extract_text()
-    return text
+        return '\n'.join(page.extract_text() for page in pdf.pages if page.extract_text())
 
-# Function to extract text from a DOCX file
 def extract_text_from_docx(docx_file):
     doc = docx.Document(docx_file)
-    text = ""
-    for para in doc.paragraphs:
-        text += para.text + '\n'
-    return text
+    return '\n'.join(para.text for para in doc.paragraphs)
 
-# Route for the home page
+# === Routes ===
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Route to handle file upload and text extraction
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -42,55 +41,66 @@ def upload_file():
 
     file = request.files['file']
     if file and allowed_file(file.filename):
-        filename = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-        file.save(filename)
+        # Generate unique filename to avoid conflicts
+        filename = f"{uuid.uuid4()}_{file.filename}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
 
         # Extract text based on file type
-        if file.filename.endswith('.pdf'):
-            text = extract_text_from_pdf(filename)
-        elif file.filename.endswith('.docx'):
-            text = extract_text_from_docx(filename)
+        try:
+            if file.filename.endswith('.pdf'):
+                text = extract_text_from_pdf(filepath)
+            elif file.filename.endswith('.docx'):
+                text = extract_text_from_docx(filepath)
+        except Exception as e:
+            return jsonify({'error': 'Failed to extract text from the file.'})
 
-        # Store extracted text in a global variable or database (for demo, we'll use a global variable)
         app.config['extracted_text'] = text
-
         return jsonify({'message': 'File uploaded and text extracted successfully!'})
     else:
         return jsonify({'error': 'Invalid file format. Please upload a PDF or DOCX.'})
 
-# Route to process question and get answer
 @app.route('/ask', methods=['POST'])
 def ask_question():
-    question = request.form['question']
+    question = request.form.get('question', '').strip()
     context = app.config.get('extracted_text', '')
 
     if not context:
         return jsonify({'error': 'No document content available. Please upload a file first.'})
+    if not question:
+        return jsonify({'error': 'No question provided.'})
+    if not OPENROUTER_API_KEY:
+        return jsonify({'error': 'API key not configured on server.'})
 
-    # Use the gemini model to find the answer
-    response = requests.post(
-    url="https://openrouter.ai/api/v1/chat/completions",
-    headers={
-        "Authorization": "Bearer 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",
-    },
-    data=json.dumps({
-        "model": "google/gemma-3-1b-it:free", # google gemma3 1B
-        "messages": [
-        {"role": "system", "content": "Answer only the question directly. Do not include greetings, thanks, or polite filler. No introductory or closing phrases. Just give the answer as directly and clearly as possible."},
-                {"role": "user", "content": f"Context: {context}\n\nQuestion: {question}"}
-        ],
-        "top_p": 1,
-        "temperature": 0.7,
-        "frequency_penalty": 0,
-        "presence_penalty": 0,
-        "repetition_penalty": 1,
-        "top_k": 0,
-    })
-    )
-    result=response.json().get("choices")[0].get("message").get("content")
-
-
-    return jsonify({'answer': result})
+    try:
+        response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
+            data=json.dumps({
+                "model": "mistralai/mistral-small-3.1-24b-instruct:free",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "Answer only the question directly. Do not include greetings, thanks, or polite filler. Just give the answer."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Context: {context}\n\nQuestion: {question}"
+                    }
+                ],
+                "top_p": 1,
+                "temperature": 0.7,
+                "frequency_penalty": 0,
+                "presence_penalty": 0,
+                "repetition_penalty": 1,
+                "top_k": 0,
+            })
+        )
+        result = response.json()["choices"][0]["message"]["content"]
+        return jsonify({'answer': result})
+    except Exception as e:
+        print("API error:", e)
+        return jsonify({'error': 'Error while generating answer from AI model.'})
 
 if __name__ == '__main__':
     app.run(debug=True)

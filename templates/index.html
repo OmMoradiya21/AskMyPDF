@@ -3,28 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document QA</title>
+    <title>Document Q&A Platform</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <h1>Upload Document (PDF/DOCX) and Ask Questions</h1>
+    <div class="container">
+        <header>
+            <h1>Document Q&A Platform</h1>
+            <p>Upload your documents and ask questions about them</p>
+        </header>
 
-    <!-- Form for file upload -->
-    <form id="uploadForm" enctype="multipart/form-data">
-        <input type="file" name="file" required><br><br>
-        <button type="submit">Upload File</button>
-    </form>
+        <main>
+            <section class="upload-section">
+                <div class="upload-container" id="dropZone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h2>Upload Your Document</h2>
+                    <p>Drag and drop your PDF or DOCX file here</p>
+                    <p>or</p>
+                    <label for="fileInput" class="upload-btn">Choose File</label>
+                    <input type="file" id="fileInput" accept=".pdf,.docx" hidden>
+                </div>
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <i class="fas fa-file-alt"></i>
+                    <span id="fileName"></span>
+                    <button class="remove-btn" id="removeFile">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </section>
 
-    <div id="status"></div>
-
-    <!-- Form for asking questions -->
-    <h2>Ask a Question</h2>
-    <form id="questionForm">
-        <input type="text" id="question" name="question" required><br><br>
-        <button type="submit">Ask</button>
-    </form>
-
-    <div id="answer"></div>
-
-    <script src="script.js"></script>
+            <section class="qa-section">
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Messages will be added here -->
+                    </div>
+                    <div class="input-container">
+                        <textarea id="questionInput" placeholder="Ask a question about your document..."></textarea>
+                        <button id="sendQuestion" class="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

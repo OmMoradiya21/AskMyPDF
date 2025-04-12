@@ -16,7 +16,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Load API key securely
 # OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_API_KEY ="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"
+OPENROUTER_API_KEY ="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"
 # === Helper Functions ===
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
@@ -36,7 +36,6 @@ def extract_text_from_docx(docx_file):
     for para in doc.paragraphs:
         text += para.text + '\n'
     return text
-
 # === Routes ===
 @app.route('/')
 def index():
@@ -104,6 +103,7 @@ def ask_question():
                 "top_k": 0,
             })
         )
+        print("API response:", response.json())
         result = response.json()["choices"][0]["message"]["content"]
         return jsonify({'answer': result})
     except Exception as e:

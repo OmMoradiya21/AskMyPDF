@@ -21,13 +21,21 @@ OPENROUTER_API_KEY ="sk-or-v1-3d81f23509fadcfa8ccda08caabe43c22bdc9c63618a57ae21
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
+# Function to extract text from a PDF
 def extract_text_from_pdf(pdf_file):
     with pdfplumber.open(pdf_file) as pdf:
-        return '\n'.join(page.extract_text() for page in pdf.pages if page.extract_text())
+        text = ""
+        for page in pdf.pages:
+            text += page.extract_text()
+    return text
 
+# Function to extract text from a DOCX file
 def extract_text_from_docx(docx_file):
     doc = docx.Document(docx_file)
-    return '\n'.join(para.text for para in doc.paragraphs)
+    text = ""
+    for para in doc.paragraphs:
+        text += para.text + '\n'
+    return text
 
 # === Routes ===
 @app.route('/')
